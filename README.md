@@ -1,4 +1,6 @@
-# NOVA: Non-Aligned Reference Image Quality Assessment for Novel View Synthesis
+# NOVA: Non-Aligned Reference Image Quality Assessment for Novel View Synthesis 
+### The code will be uploaded soon!
+
 ## Mismatch Overlay (B vs A)
 
 This is a minimal CLI that computes **only** `mismatch_B_norm_overlay.png` where:
