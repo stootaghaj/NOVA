@@ -9,7 +9,7 @@ This is a minimal CLI that computes **only** `mismatch_B_norm_overlay.png` where
 
 Download the weights from the link below:
 ```
-TBD
+TBA
 ```
 The overlay is computed from DINOv2 ViT patch embeddings with a lightweight LoRA injection on the last blocks, dense nearest-neighbor correspondences, and a global-normalized mismatch heatmap **blended over image B**.
 
