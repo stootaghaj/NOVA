@@ -82,13 +82,12 @@ mismatch_B_norm_overlay.png  # global‑normalized mismatch map for B, overlaid 
 ### Citation
 If you use this repo in academic work, please cite the NOVA paper and reference **Section 9.2** for the dense patch matching procedure.
 
-> **NOVA — Non‑Aligned Reference Image Quality Assessment for Novel View Synthesis**, WACV 2026 (Applications Track), Sec. 9.2 “Dense Patch Matching via Nearest‑Neighbor Cosine Similarity”.
+> **NOVA — Non‑Aligned Reference Image Quality Assessment for Novel View Synthesis**, Sec. 9.2 “Dense Patch Matching via Nearest‑Neighbor Cosine Similarity”.
 
 ```bibtex
-@inproceedings{NOVA2026,
+@inproceedings{NOVA2025,
   title     = {Non-Aligned Reference Image Quality Assessment for Novel View Synthesis (NOVA)},
-  booktitle = {Submmited to WACV 2026},
-  year      = {2026},
+  year      = {2025},
   note      = {See Section 9.2 for dense patch matching.}
 }
 ```
