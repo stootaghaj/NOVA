@@ -70,11 +70,7 @@ test_run.py
 .DS_Store
 Thumbs.db
 
-# Model weights (too large for git - download separately)
-weights/*.pt
-weights/*.pth
-*.pt
-*.pth
+# Note: .pt and .pth files are tracked via Git LFS (see .gitattributes)
 
 # Sphinx documentation
 docs/_build/
