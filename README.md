@@ -19,7 +19,7 @@ For dataset and more details, visit our [project page](https://stootaghaj.github
 ## 🏗️ Model Architecture
 
 <p align="center">
-  <img src="fig/Model_Arc.png" alt="NOVA Model Architecture" width="800"/>
+  <img src="fig/Model_Arc.png" alt="NOVA Model Architecture" width="600"/>
 </p>
 
 NOVA is built on **DINOv2** (ViT-B/14) enhanced with LoRA fine-tuning, trained using:
