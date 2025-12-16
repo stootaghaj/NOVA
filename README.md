@@ -1,6 +1,6 @@
 # NOVA: Non-aligned View Assessment
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR_USERNAME/NOVA/blob/main/NOVA_Demo.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/stootaghaj/NOVA/blob/main/NOVA_Demo.ipynb)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -40,7 +40,7 @@ For dataset and more details, visit our [project page](https://stootaghaj.github
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/NOVA.git
+git clone https://github.com/stootaghaj/NOVA.git
 cd NOVA
 
 # Install dependencies
@@ -207,7 +207,7 @@ NOVA/
 
 Try it directly in your browser:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/YOUR_USERNAME/NOVA/blob/main/NOVA_Demo.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/stootaghaj/NOVA/blob/main/NOVA_Demo.ipynb)
 
 ## 📚 Citation
 
