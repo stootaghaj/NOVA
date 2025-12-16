@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 """
-VFI-Similarity: Video Frame Interpolation Quality Assessment via Deep Embeddings
+NOVA: Non-aligned View Assessment for Novel View Synthesis
 
 This tool computes cosine distance between image pairs using a fine-tuned DINOv2 model
-for evaluating video frame interpolation quality and detecting visual artifacts.
+for evaluating Novel View Synthesis (NVS) quality using non-aligned reference views.
 
 Features:
 - Cosine distance computation between image pairs
-- Optional dense patch visualization (PCA, mismatch maps, vector fields)
+- Non-aligned reference support (no pixel-level alignment required)
+- Heatmap overlay visualization on synthesized frame
 - Support for batch processing via JSON config
 
 Usage:
-    # Basic cosine distance
-    python vfi_similarity.py --image-a frame1.png --image-b frame2.png
+    # Basic quality assessment with fine-tuned checkpoint
+    python nova.py --image-a reference.png --image-b synthesized.png \\
+        --checkpoint weights/NOVA_merged.pt
 
-    # With visualization
-    python vfi_similarity.py --image-a frame1.png --image-b frame2.png --visualize --out ./results
+    # With heatmap visualization
+    python nova.py --image-a reference.png --image-b synthesized.png \\
+        --checkpoint weights/NOVA_merged.pt --visualize --out ./results
 
     # Batch processing
-    python vfi_similarity.py --config pairs.json --out ./results
+    python nova.py --config pairs.json --out ./results \\
+        --checkpoint weights/NOVA_merged.pt
 """
 
 import os
@@ -45,12 +49,6 @@ except ImportError:
     timm = None
     print("[WARN] timm not installed. Install with: pip install timm")
 
-try:
-    from sklearn.decomposition import PCA
-    HAS_SKLEARN = True
-except ImportError:
-    HAS_SKLEARN = False
-    PCA = None
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -58,10 +56,10 @@ warnings.filterwarnings("ignore", category=UserWarning)
 # Model Definition (Merged - No LoRA)
 # ============================================================================
 
-class VFISimilarityModel(nn.Module):
+class NOVAModel(nn.Module):
     """
-    DINOv2-based model for video frame similarity assessment.
-    This is the merged version where LoRA weights have been baked into the base model.
+    NOVA: Non-aligned View Assessment model for Novel View Synthesis quality assessment.
+    Built on DINOv2 with LoRA fine-tuning (merged into base model for inference).
     """
     def __init__(self, model_name: str = "vit_base_patch14_dinov2.lvd142m"):
         super().__init__()
@@ -100,25 +98,29 @@ class VFISimilarityModel(nn.Module):
 
 def load_model(checkpoint_path: Optional[str] = None,
                model_name: str = "vit_base_patch14_dinov2.lvd142m",
-               device: torch.device = None) -> VFISimilarityModel:
+               device: torch.device = None) -> NOVAModel:
     """
-    Load the VFI similarity model.
+    Load the NOVA model for NVS quality assessment.
 
     Args:
-        checkpoint_path: Path to merged model checkpoint (optional)
+        checkpoint_path: Path to merged model checkpoint (required for fine-tuned weights)
         model_name: Base model name for timm
         device: Target device
 
     Returns:
         Loaded model in eval mode
+
+    Note:
+        Without a checkpoint, this uses the pretrained DINOv2 weights which will
+        give different results than the fine-tuned NOVA model.
     """
     if device is None:
         device = pick_device("auto")
 
-    model = VFISimilarityModel(model_name=model_name)
+    model = NOVAModel(model_name=model_name)
 
     if checkpoint_path and os.path.exists(checkpoint_path):
-        print(f"[INFO] Loading checkpoint from: {checkpoint_path}")
+        print(f"[INFO] Loading fine-tuned checkpoint from: {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, map_location=device)
 
         if "base" in checkpoint:
@@ -126,11 +128,14 @@ def load_model(checkpoint_path: Optional[str] = None,
             model.base.load_state_dict(checkpoint["base"])
             if "embedding_head" in checkpoint:
                 model.embedding_head.load_state_dict(checkpoint["embedding_head"])
+            print("[INFO] Loaded NOVA fine-tuned weights successfully!")
         else:
             # Try direct load
             model.load_state_dict(checkpoint, strict=False)
+            print("[INFO] Loaded checkpoint (direct format)")
     else:
-        print("[INFO] Using pretrained DINOv2 weights (no fine-tuned checkpoint)")
+        print("[WARN] No checkpoint provided or file not found.")
+        print("[WARN] Using pretrained DINOv2 weights - results will differ from fine-tuned NOVA model!")
 
     model = model.to(device)
     model.eval()
@@ -181,7 +186,7 @@ def load_image(path: str, transform=None) -> torch.Tensor:
 # ============================================================================
 
 @torch.no_grad()
-def compute_cosine_distance(model: VFISimilarityModel,
+def compute_cosine_distance(model: NOVAModel,
                             image_a: str,
                             image_b: str,
                             device: torch.device,
@@ -190,9 +195,9 @@ def compute_cosine_distance(model: VFISimilarityModel,
     Compute cosine distance between two images.
 
     Args:
-        model: Loaded VFISimilarityModel
-        image_a: Path to first image (reference)
-        image_b: Path to second image (comparison)
+        model: Loaded NOVAModel
+        image_a: Path to reference image (can be non-aligned)
+        image_b: Path to synthesized/distorted image
         device: Computation device
         resize: Image resize dimension
 
@@ -227,7 +232,7 @@ def compute_cosine_distance(model: VFISimilarityModel,
 # ============================================================================
 
 @torch.no_grad()
-def extract_patch_features(model: VFISimilarityModel,
+def extract_patch_features(model: NOVAModel,
                            image_path: str,
                            device: torch.device,
                            resize: int = 518) -> Tuple[torch.Tensor, torch.Tensor, int]:
@@ -329,105 +334,81 @@ def save_heatmap(values: torch.Tensor,
     plt.close()
 
 
-def get_patch_centers(width: int, height: int, grid_size: int) -> np.ndarray:
-    """Get pixel coordinates of patch centers."""
-    xs = np.linspace(width / (2 * grid_size), width - width / (2 * grid_size), grid_size)
-    ys = np.linspace(height / (2 * grid_size), height - height / (2 * grid_size), grid_size)
-    xv, yv = np.meshgrid(xs, ys)
-    return np.stack([xv, yv], axis=-1).reshape(-1, 2)
+def save_heatmap_overlay(values: torch.Tensor,
+                         grid_size: int,
+                         image: Image.Image,
+                         output_path: str,
+                         title: str = "",
+                         cmap: str = "hot",
+                         alpha: float = 0.5):
+    """Save a heatmap overlayed on the original image, preserving original size and aspect ratio."""
+    # Get original image size
+    orig_width, orig_height = image.size
 
+    # Create heatmap and resize to original image size
+    heatmap = values.view(grid_size, grid_size).cpu().numpy()
 
-def draw_vector_field(image_a: Image.Image,
-                      image_b: Image.Image,
-                      grid_size: int,
-                      idx_a2b: torch.Tensor,
-                      output_path: str,
-                      stride: int = 4):
-    """Draw correspondence arrows between image patches."""
-    a_arr = np.array(image_a)
-    b_arr = np.array(image_b)
-    H, W = a_arr.shape[:2]
+    # Normalize heatmap to 0-1
+    heatmap_min, heatmap_max = heatmap.min(), heatmap.max()
+    if heatmap_max - heatmap_min > 1e-8:
+        heatmap_norm = (heatmap - heatmap_min) / (heatmap_max - heatmap_min)
+    else:
+        heatmap_norm = heatmap
 
-    canvas = np.zeros((H, W * 2, 3), dtype=a_arr.dtype)
-    canvas[:, :W] = a_arr
-    canvas[:, W:] = b_arr
+    # Resize heatmap to original image size (preserving aspect ratio)
+    heatmap_resized = np.array(Image.fromarray((heatmap_norm * 255).astype(np.uint8)).resize(
+        (orig_width, orig_height), Image.BILINEAR)) / 255.0
 
-    centers_a = get_patch_centers(W, H, grid_size)
-    centers_b = get_patch_centers(W, H, grid_size)
-    centers_b[:, 0] += W
+    # Calculate figure size to match aspect ratio (with reasonable max size)
+    max_fig_size = 12
+    aspect_ratio = orig_width / orig_height
+    if aspect_ratio >= 1:
+        fig_width = max_fig_size
+        fig_height = max_fig_size / aspect_ratio
+    else:
+        fig_height = max_fig_size
+        fig_width = max_fig_size * aspect_ratio
 
-    plt.figure(figsize=(12, 6))
-    plt.imshow(canvas)
-    plt.axis("off")
+    # Create figure with correct aspect ratio
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
-    for r in range(0, grid_size, stride):
-        for c in range(0, grid_size, stride):
-            i = r * grid_size + c
-            j = idx_a2b[i].item()
-            x1, y1 = centers_a[i]
-            x2, y2 = centers_b[j]
-            plt.arrow(x1, y1, x2 - x1, y2 - y1,
-                     head_width=6, head_length=4,
-                     linewidth=0.5, alpha=0.7, color="cyan")
+    # Show original image (not resized)
+    ax.imshow(image)
 
-    plt.tight_layout()
+    # Overlay heatmap with transparency
+    heatmap_colored = ax.imshow(heatmap_resized, cmap=cmap, alpha=alpha, vmin=0, vmax=1)
+
+    # Add colorbar
+    cbar = plt.colorbar(heatmap_colored, ax=ax, shrink=0.8)
+    cbar.set_label('Difference Intensity', fontsize=10)
+
+    ax.set_title(title, fontsize=12)
+    ax.axis("off")
+
     os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
     plt.savefig(output_path, bbox_inches="tight", dpi=150)
     plt.close()
 
 
-def visualize_pca(patches_a: torch.Tensor,
-                  patches_b: torch.Tensor,
-                  grid_size: int,
-                  output_dir: str):
-    """Create PCA-based dense colorization of patches."""
-    if not HAS_SKLEARN:
-        print("[WARN] sklearn not installed, skipping PCA visualization")
-        return
-
-    # Fit PCA on combined patches
-    all_patches = torch.cat([patches_a, patches_b], dim=0).numpy()
-    pca = PCA(n_components=3, whiten=True, random_state=42)
-    pca.fit(all_patches)
-
-    # Project each image
-    proj_a = pca.transform(patches_a.numpy())
-    proj_b = pca.transform(patches_b.numpy())
-
-    # Reshape and normalize to RGB
-    proj_a = proj_a.reshape(grid_size, grid_size, 3)
-    proj_b = proj_b.reshape(grid_size, grid_size, 3)
-
-    # Sigmoid scaling for visualization
-    proj_a = 1 / (1 + np.exp(-2 * proj_a))
-    proj_b = 1 / (1 + np.exp(-2 * proj_b))
-
-    # Save visualizations
-    os.makedirs(output_dir, exist_ok=True)
-
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
-    axes[0].imshow(proj_a)
-    axes[0].set_title("Image A - PCA Features")
-    axes[0].axis("off")
-    axes[1].imshow(proj_b)
-    axes[1].set_title("Image B - PCA Features")
-    axes[1].axis("off")
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, "pca_features.png"), dpi=150, bbox_inches="tight")
-    plt.close()
-
-
 @torch.no_grad()
-def run_visualization(model: VFISimilarityModel,
+def run_visualization(model: NOVAModel,
                       image_a: str,
                       image_b: str,
                       output_dir: str,
                       device: torch.device,
                       resize: int = 518,
-                      arrow_stride: int = 4,
-                      enable_pca: bool = True) -> Dict[str, Any]:
+                      alpha: float = 0.5) -> Dict[str, Any]:
     """
-    Run full visualization pipeline.
+    Run visualization pipeline - generates heatmap overlay on the synthesized frame.
+
+    Args:
+        model: Loaded NOVA model
+        image_a: Path to reference image (can be non-aligned)
+        image_b: Path to synthesized image (heatmap will be overlayed on this)
+        output_dir: Output directory
+        device: Computation device
+        resize: Image resize dimension
+        alpha: Heatmap overlay transparency (0-1)
 
     Returns:
         Dictionary with similarity statistics and output paths
@@ -447,32 +428,25 @@ def run_visualization(model: VFISimilarityModel,
     print("[INFO] Computing dense correspondences...")
     idx_a2b, sim_a2b, idx_b2a, sim_b2a = dense_nearest_neighbors(patches_a, patches_b)
 
-    # Similarity heatmaps
-    print("[INFO] Generating similarity heatmaps...")
-    save_heatmap(sim_a2b, grid_size, os.path.join(output_dir, "similarity_A2B.png"),
-                 "A→B Cosine Similarity", cmap="viridis")
-    save_heatmap(sim_b2a, grid_size, os.path.join(output_dir, "similarity_B2A.png"),
-                 "B→A Cosine Similarity", cmap="viridis")
-
-    # Mismatch maps
-    print("[INFO] Computing mismatch maps...")
+    # Compute mismatch/difference map for the distorted frame (B)
+    print("[INFO] Computing difference map...")
     mismatch_a, mismatch_b = compute_mismatch_maps(sim_a2b, sim_b2a, idx_a2b, idx_b2a)
-    save_heatmap(mismatch_a, grid_size, os.path.join(output_dir, "mismatch_A.png"),
-                 "Mismatch Map A", cmap="hot")
-    save_heatmap(mismatch_b, grid_size, os.path.join(output_dir, "mismatch_B.png"),
-                 "Mismatch Map B", cmap="hot")
 
-    # Vector field
-    print("[INFO] Drawing correspondence vectors...")
-    img_a_pil = Image.open(image_a).convert("RGB").resize((resize, resize))
-    img_b_pil = Image.open(image_b).convert("RGB").resize((resize, resize))
-    draw_vector_field(img_a_pil, img_b_pil, grid_size, idx_a2b,
-                     os.path.join(output_dir, "vector_field.png"), stride=arrow_stride)
+    # Load distorted image for overlay
+    img_b_pil = Image.open(image_b).convert("RGB")
 
-    # PCA visualization
-    if enable_pca:
-        print("[INFO] Generating PCA visualization...")
-        visualize_pca(patches_a, patches_b, grid_size, output_dir)
+    # Save heatmap overlay on distorted frame
+    output_path = os.path.join(output_dir, "heatmap_overlay.png")
+    save_heatmap_overlay(
+        mismatch_b,
+        grid_size,
+        img_b_pil,
+        output_path,
+        title=f"Difference Heatmap - {os.path.basename(image_b)}",
+        cmap="hot",
+        alpha=alpha
+    )
+    print(f"[INFO] Saved heatmap overlay to: {output_path}")
 
     # Summary statistics
     summary = {
@@ -483,16 +457,14 @@ def run_visualization(model: VFISimilarityModel,
         "embedding_dim": patches_a.size(1),
         "mean_similarity_a2b": float(sim_a2b.mean()),
         "mean_similarity_b2a": float(sim_b2a.mean()),
-        "mean_mismatch_a": float(mismatch_a.mean()),
-        "mean_mismatch_b": float(mismatch_b.mean()),
-        "output_dir": output_dir,
+        "mean_mismatch": float(mismatch_b.mean()),
+        "output_file": output_path,
     }
 
     # Save summary
     with open(os.path.join(output_dir, "summary.json"), "w") as f:
         json.dump(summary, f, indent=2)
 
-    print(f"[INFO] Visualizations saved to: {output_dir}")
     return summary
 
 
@@ -502,29 +474,29 @@ def run_visualization(model: VFISimilarityModel,
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        description="VFI-Similarity: Video Frame Interpolation Quality Assessment",
+        description="NOVA: Non-aligned View Assessment for Novel View Synthesis",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic cosine distance
-  python vfi_similarity.py --image-a frame1.png --image-b frame2.png
+  # Basic quality assessment
+  python nova.py --image-a reference.png --image-b synthesized.png
   
-  # With visualization
-  python vfi_similarity.py --image-a frame1.png --image-b frame2.png --visualize --out ./results
+  # With heatmap visualization overlay on synthesized frame
+  python nova.py --image-a reference.png --image-b synthesized.png --visualize --out ./results
   
   # Batch processing with JSON config
-  python vfi_similarity.py --config pairs.json --out ./results
+  python nova.py --config pairs.json --out ./results
 """
     )
 
     # Input options
-    parser.add_argument("--image-a", type=str, help="Path to first image (reference)")
-    parser.add_argument("--image-b", type=str, help="Path to second image (comparison)")
+    parser.add_argument("--image-a", type=str, help="Path to reference image (can be non-aligned)")
+    parser.add_argument("--image-b", type=str, help="Path to synthesized/distorted image")
     parser.add_argument("--config", type=str, help="JSON config file with image pairs")
 
     # Model options
     parser.add_argument("--checkpoint", type=str, default=None,
-                       help="Path to merged model checkpoint")
+                       help="Path to NOVA model checkpoint (weights/NOVA_merged.pt)")
     parser.add_argument("--model-name", type=str, default="vit_base_patch14_dinov2.lvd142m",
                        help="Base model name for timm")
 
@@ -537,13 +509,11 @@ Examples:
 
     # Visualization options
     parser.add_argument("--visualize", action="store_true",
-                       help="Enable dense patch visualization")
+                       help="Enable heatmap overlay visualization on synthesized frame")
     parser.add_argument("--out", type=str, default="./output",
                        help="Output directory for results")
-    parser.add_argument("--arrow-stride", type=int, default=4,
-                       help="Stride for vector field arrows")
-    parser.add_argument("--no-pca", action="store_true",
-                       help="Disable PCA visualization")
+    parser.add_argument("--alpha", type=float, default=0.5,
+                       help="Heatmap overlay transparency (0-1)")
 
     return parser
 
@@ -592,12 +562,12 @@ def main():
         print(f"  → Cosine Distance: {result['cosine_distance']:.4f}")
         print(f"  → Cosine Similarity: {result['cosine_similarity']:.4f}")
 
-        # Optional visualization
+        # Optional visualization (heatmap overlay only)
         if args.visualize:
             pair_out = os.path.join(args.out, f"pair_{i+1:03d}")
             vis_result = run_visualization(
                 model, img_a, img_b, pair_out, device,
-                args.resize, args.arrow_stride, not args.no_pca
+                args.resize, args.alpha
             )
             result.update(vis_result)
 

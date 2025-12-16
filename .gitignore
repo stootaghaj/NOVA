@@ -59,6 +59,23 @@ instance/
 # Scrapy stuff:
 .scrapy
 
+# Test outputs
+test_output/
+test_viz/
+output/
+output_result.txt
+test_run.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Model weights (too large for git - download separately)
+weights/*.pt
+weights/*.pth
+*.pt
+*.pth
+
 # Sphinx documentation
 docs/_build/
 
