@@ -25,7 +25,6 @@ import os
 import sys
 import json
 import math
-import csv
 import argparse
 import warnings
 from typing import Optional, Tuple, Dict, Any
@@ -43,6 +42,7 @@ try:
     HAS_TIMM = True
 except ImportError:
     HAS_TIMM = False
+    timm = None
     print("[WARN] timm not installed. Install with: pip install timm")
 
 try:
