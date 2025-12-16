@@ -12,9 +12,20 @@ NOVA is a deep learning-based image quality assessment tool designed for evaluat
 
 > **Non-Aligned Reference Image Quality Assessment for Novel View Synthesis**  
 > Abhijay Ghildyal, Rajesh Sureddi, Nabajeet Barman, Saman Zadtootaghaj, Alan Bovik  
-> Sony Interactive Entertainment & University of Texas at Austin
+> *Accepted at WACV 2026*
 
 For dataset and more details, visit our [project page](https://stootaghaj.github.io/nova-project/).
+
+## 🏗️ Model Architecture
+
+<p align="center">
+  <img src="fig/Model_Arc.png" alt="NOVA Model Architecture" width="800"/>
+</p>
+
+NOVA is built on **DINOv2** (ViT-B/14) enhanced with LoRA fine-tuning, trained using:
+- **Contrastive triplet loss** for learning perceptual quality embeddings
+- **KL divergence regularization** to maintain alignment with pretrained DINOv2 space
+- **IQA model supervision** from DISTS and DeepDC for human-aligned quality assessment
 
 ## 🎯 Features
 
@@ -167,40 +178,23 @@ Options:
   --alpha            Heatmap overlay transparency, 0-1 (default: 0.5)
 ```
 
-## 🏗️ Model Architecture
-
-NOVA is built on **DINOv2** (ViT-B/14) enhanced with LoRA fine-tuning, trained using:
-- **Contrastive triplet loss** for learning perceptual quality embeddings
-- **KL divergence regularization** to maintain alignment with pretrained DINOv2 space
-- **IQA model supervision** from DISTS and DeepDC for human-aligned quality assessment
-
-```
-Input Image (518×518)
-        ↓
-  DINOv2 ViT-B/14 (with LoRA fine-tuning)
-        ↓
-  Patch Tokens (37×37 = 1369 patches)
-        ↓
-  Mean Pooling → 768-dim embedding
-        ↓
-  Cosine Similarity/Distance
-```
-
 ## 📁 Project Structure
 
 ```
 NOVA/
 ├── nova.py                 # Main module
 ├── requirements.txt        # Dependencies
-├── README.md              # Documentation
-├── LICENSE                # MIT License
-├── NOVA_Demo.ipynb        # Google Colab notebook
-├── samples/               # Example images
+├── README.md               # Documentation
+├── LICENSE                 # MIT License
+├── NOVA_Demo.ipynb         # Google Colab notebook
+├── fig/                    # Figures
+│   └── Model_Arc.png       # Model architecture diagram
+├── samples/                # Example images
 │   ├── frame1.png
 │   └── frame2.png
-└── weights/               # Model weights
-    ├── README.md          # Download instructions
-    └── NOVA_merged.pt     # Fine-tuned checkpoint
+└── weights/                # Model weights
+    ├── README.md           # Download instructions
+    └── NOVA_merged.pt      # Fine-tuned checkpoint
 ```
 
 ## 📓 Google Colab
@@ -214,11 +208,11 @@ Try it directly in your browser:
 If you use NOVA in your research, please cite:
 
 ```bibtex
-@article{ghildyal2024nova,
+@inproceedings{ghildyal2026nova,
   title={Non-Aligned Reference Image Quality Assessment for Novel View Synthesis},
   author={Ghildyal, Abhijay and Sureddi, Rajesh and Barman, Nabajeet and Zadtootaghaj, Saman and Bovik, Alan},
-  journal={arXiv preprint},
-  year={2024}
+  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+  year={2026}
 }
 ```
 
@@ -234,6 +228,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [DINOv2](https://github.com/facebookresearch/dinov2) by Meta AI Research
 - [timm](https://github.com/huggingface/pytorch-image-models) by Ross Wightman
-- Sony Interactive Entertainment
-- University of Texas at Austin
+
+---
+
+© 2025 University of Texas at Austin. All rights reserved.
 

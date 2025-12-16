@@ -1,21 +1,3 @@
-# Model Weights
-
-Place your fine-tuned NOVA model weights in this directory.
-
-## Required Files
-
-- `NOVA_merged.pt` - Fine-tuned DINOv2 model with merged LoRA weights
-
-## Download
-
-Model weights are available on our [project page](https://stootaghaj.github.io/nova-project/).
-
-## Usage
-
-Once weights are downloaded, run:
-
-```bash
-python nova.py --image-a samples/frame1.png --image-b samples/frame2.png \
-    --checkpoint weights/NOVA_merged.pt
-```
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:63412c70fa157343c0cabdf811a2f05bcb295dc35e5512ef28ea0a03a18d8fbe
+size 450
