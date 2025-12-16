@@ -58,16 +58,18 @@ cd NOVA
 pip install -r requirements.txt
 ```
 
-### Download Model Weights
+### Model Weights
 
-Download the fine-tuned model weights and place them in the `weights/` folder:
+The fine-tuned model weights (`weights/NOVA_merged.pt`) are included in this repository via [Git LFS](https://git-lfs.github.com/). They will be downloaded automatically when you clone the repository.
+
+If the weights weren't downloaded (e.g., Git LFS not installed), run:
 
 ```bash
-mkdir -p weights
-# Download NOVA_merged.pt and place in weights/
+git lfs install
+git lfs pull
 ```
 
-> **Note**: Model weights are available on our [project page](https://stootaghaj.github.io/nova-project/).
+> **Note**: For more details and dataset, visit our [project page](https://stootaghaj.github.io/nova-project/).
 
 ## 🚀 Quick Start
 
