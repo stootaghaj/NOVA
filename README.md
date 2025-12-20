@@ -1,4 +1,4 @@
-# NOVA: Non-aligned View Assessment
+# NOVA: Non-aligned View Assessment @ WACV 2026
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/stootaghaj/NOVA/blob/main/NOVA_Demo.ipynb)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
