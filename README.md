@@ -218,13 +218,16 @@ Try it directly in your browser:
 If you use NOVA in your research, please cite:
 
 ```bibtex
-@inproceedings{ghildyal2026nova,
-  title={Non-Aligned Reference Image Quality Assessment for Novel View Synthesis},
-  author={Ghildyal, Abhijay and Sureddi, Rajesh and Barman, Nabajeet and Zadtootaghaj, Saman and Bovik, Alan},
-  booktitle={Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
-  year={2026}
+@InProceedings{Ghildyal_2026_WACV,
+    author    = {Ghildyal, Abhijay and Sureddi, Rajesh and Barman, Nabajeet and Zadtootaghaj, Saman and Bovik, Alan C},
+    title     = {Non-Aligned Reference Image Quality Assessment for Novel View Synthesis},
+    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+    month     = {March},
+    year      = {2026},
+    pages     = {6350-6359}
 }
 ```
+
 
 ## 🤝 Contributing
 
