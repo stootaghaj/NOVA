@@ -118,10 +118,10 @@ venv.bak/
 *.swp
 *.swo
 
-# Model weights (too large for git)
-*.pt
+# Model weights (too large for git, tracked via Git LFS in weights/)
 *.pth
 *.ckpt
+!weights/*.pt
 
 # Output directories
 output/

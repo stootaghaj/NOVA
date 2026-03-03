@@ -14,15 +14,15 @@ Features:
 Usage:
     # Basic quality assessment with fine-tuned checkpoint
     python nova.py --image-a reference.png --image-b synthesized.png \\
-        --checkpoint weights/NOVA_merged.pt
+        --checkpoint weights/NOVA_NVS.pt
 
     # With heatmap visualization
     python nova.py --image-a reference.png --image-b synthesized.png \\
-        --checkpoint weights/NOVA_merged.pt --visualize --out ./results
+        --checkpoint weights/NOVA_NVS.pt --visualize --out ./results
 
     # Batch processing
     python nova.py --config pairs.json --out ./results \\
-        --checkpoint weights/NOVA_merged.pt
+        --checkpoint weights/NOVA_NVS.pt
 """
 
 import os
@@ -496,7 +496,7 @@ Examples:
 
     # Model options
     parser.add_argument("--checkpoint", type=str, default=None,
-                       help="Path to NOVA model checkpoint (weights/NOVA_merged.pt)")
+                       help="Path to NOVA model checkpoint (weights/NOVA_NVS.pt)")
     parser.add_argument("--model-name", type=str, default="vit_base_patch14_dinov2.lvd142m",
                        help="Base model name for timm")
 

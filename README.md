@@ -60,16 +60,23 @@ pip install -r requirements.txt
 
 ### Model Weights
 
-The fine-tuned model weights (`weights/NOVA_merged.pt`) are included in this repository via [Git LFS](https://git-lfs.github.com/). They will be downloaded automatically when you clone the repository.
+We provide two pre-trained checkpoints via [Git LFS](https://git-lfs.github.com/):
 
-If the weights weren't downloaded (e.g., Git LFS not installed), run:
+| Checkpoint | Training Data | Description |
+|------------|--------------|-------------|
+| `weights/NOVA_baseline.pt` | Synthetic distortions | Trained on synthetically distorted data. Reproduces the results reported in the paper. |
+| `weights/NOVA_NVS.pt` | NVS distortions | Fine-tuned on real NVS artifacts. **Recommended for NVS quality assessment.** |
+
+> **Note**: The results reported in the paper were obtained using `NOVA_baseline.pt`. For practical NVS quality evaluation, we recommend `NOVA_NVS.pt` as it has been additionally trained on real Novel View Synthesis artifacts and generalizes better to NVS distortions.
+
+The weights are downloaded automatically when you clone the repository. If they weren't downloaded (e.g., Git LFS not installed), run:
 
 ```bash
 git lfs install
 git lfs pull
 ```
 
-> **Note**: For more details and dataset, visit our [project page](https://stootaghaj.github.io/nova-project/).
+> For more details and dataset, visit our [project page](https://stootaghaj.github.io/nova-project/).
 
 ## 🚀 Quick Start
 
@@ -78,11 +85,11 @@ git lfs pull
 ```bash
 # Basic quality assessment with fine-tuned checkpoint
 python nova.py --image-a reference.png --image-b synthesized.png \
-    --checkpoint weights/NOVA_merged.pt
+    --checkpoint weights/NOVA_NVS.pt
 
 # With heatmap visualization overlay
 python nova.py --image-a reference.png --image-b synthesized.png \
-    --checkpoint weights/NOVA_merged.pt --visualize --out ./results
+    --checkpoint weights/NOVA_NVS.pt --visualize --out ./results
 ```
 
 ### Python API
@@ -92,7 +99,7 @@ from nova import load_model, compute_cosine_distance, run_visualization, pick_de
 
 # Load model with fine-tuned checkpoint
 device = pick_device("auto")
-model = load_model(checkpoint_path="weights/NOVA_merged.pt", device=device)
+model = load_model(checkpoint_path="weights/NOVA_NVS.pt", device=device)
 
 # Compute cosine distance (lower = more similar)
 result = compute_cosine_distance(
@@ -136,7 +143,7 @@ Run batch processing:
 
 ```bash
 python nova.py --config pairs.json --out ./batch_results \
-    --checkpoint weights/NOVA_merged.pt --visualize
+    --checkpoint weights/NOVA_NVS.pt --visualize
 ```
 
 ## 📊 Output
@@ -171,7 +178,7 @@ Options:
   --image-a          Path to reference image (can be non-aligned)
   --image-b          Path to synthesized/distorted image
   --config           JSON config file with image pairs
-  --checkpoint       Path to model checkpoint (weights/NOVA_merged.pt)
+  --checkpoint       Path to model checkpoint (weights/NOVA_NVS.pt)
   --model-name       Base model name (default: vit_base_patch14_dinov2.lvd142m)
   --resize           Image resize dimension (default: 518)
   --device           Device: auto, cpu, cuda, mps (default: auto)
@@ -196,7 +203,8 @@ NOVA/
 │   └── frame2.png
 └── weights/                # Model weights
     ├── README.md           # Download instructions
-    └── NOVA_merged.pt      # Fine-tuned checkpoint
+    ├── NOVA_baseline.pt    # Baseline checkpoint (paper results)
+    └── NOVA_NVS.pt         # NVS-optimized checkpoint (recommended)
 ```
 
 ## 📓 Google Colab
